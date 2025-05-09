@@ -15,46 +15,44 @@
 
   <script>
     let map, marker;
+    const gps2ipURL = "http://192.168.1.1:11123"; // 改成 GPS2IP 提供的 IP 與 port
 
-    function initMap() {
-      const initialPos = { lat: 22.5934, lng: 120.3140 }; // 
-      map = new google.maps.Map(document.getElementById("map"), {
-        zoom: 15,
-        center: initialPos
-      });
-      marker = new google.maps.Marker({
-        position: initialPos,
-        map: map
-      });
+    async function fetchLocation() {
+      try {
+        const response = await fetch(gps2ipURL);
+        const text = await response.text();
 
-      connectToGPS2IP();
-    }
+        // 解析 GPS2IP 傳回的格式，例如 "Latitude: 25.033, Longitude: 121.565"
+        const match = text.match(/Latitude:\s*(-?\d+\.\d+),\s*Longitude:\s*(-?\d+\.\d+)/);
+        if (!match) return;
 
-    function connectToGPS2IP() {
-      const socket = new WebSocket("ws://192.168.1.1:11123"); // 改成你 iPhone 的 IP 位址與 GPS2IP 的 port
+        const lat = parseFloat(match[1]);
+        const lng = parseFloat(match[2]);
+        const pos = { lat, lng };
 
-      socket.onmessage = function(event) {
-        const data = event.data.trim();
-        const parts = data.split(",");
-
-        if (parts.length >= 2) {
-          const lat = parseFloat(parts[0]);
-          const lng = parseFloat(parts[1]);
-          if (!isNaN(lat) && !isNaN(lng)) {
-            const pos = { lat, lng };
-            marker.setPosition(pos);
-            map.setCenter(pos);
-          }
+        if (!map) {
+          map = new google.maps.Map(document.getElementById("map"), {
+            zoom: 15,
+            center: pos
+          });
+          marker = new google.maps.Marker({
+            position: pos,
+            map: map
+          });
+        } else {
+          map.setCenter(pos);
+          marker.setPosition(pos);
         }
-      };
-
-      socket.onerror = function(error) {
-        console.error("WebSocket 錯誤:", error);
-      };
+      } catch (err) {
+        console.error("錯誤：無法取得位置資料", err);
+      }
     }
+
+    // 每秒更新一次位置
+    setInterval(fetchLocation, 1000);
   </script>
 
-  <!-- Google Maps API key 要替換掉下面的 YOUR_API_KEY -->
-  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAB2eC2UMVbzmgHSCce_C_34zKH0KG_Uxw&callback=initMap" async defer></script>
+  <!-- Google Maps API -->
+  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAB2eC2UMVbzmgHSCce_C_34zKH0KG_Uxw"></script>
 </body>
 </html>
