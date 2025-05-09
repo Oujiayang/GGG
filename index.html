@@ -1,8 +1,9 @@
+
 <!DOCTYPE html>
 <html>
 <head>
   <meta charset="utf-8">
-  <title>GPS 即時地圖</title>
+  <title>模擬 GPS 移動地圖</title>
   <style>
     #map {
       height: 100vh;
@@ -14,45 +15,43 @@
   <div id="map"></div>
 
   <script>
-    let map, marker;
-    const gps2ipURL = "http://192.168.1.1:11123"; // 改成 GPS2IP 提供的 IP 與 port
+    let map, marker, index = 0;
 
-    async function fetchLocation() {
-      try {
-        const response = await fetch(gps2ipURL);
-        const text = await response.text();
+    // 模擬一組移動中的座標（以台北市為例）
+    const path = [
+      { lat: 25.0330, lng: 121.5654 },
+      { lat: 25.0335, lng: 121.5656 },
+      { lat: 25.0340, lng: 121.5658 },
+      { lat: 25.0345, lng: 121.5660 },
+      { lat: 25.0350, lng: 121.5662 },
+      { lat: 25.0355, lng: 121.5664 }
+    ];
 
-        // 解析 GPS2IP 傳回的格式，例如 "Latitude: 25.033, Longitude: 121.565"
-        const match = text.match(/Latitude:\s*(-?\d+\.\d+),\s*Longitude:\s*(-?\d+\.\d+)/);
-        if (!match) return;
-
-        const lat = parseFloat(match[1]);
-        const lng = parseFloat(match[2]);
-        const pos = { lat, lng };
-
-        if (!map) {
-          map = new google.maps.Map(document.getElementById("map"), {
-            zoom: 15,
-            center: pos
-          });
-          marker = new google.maps.Marker({
-            position: pos,
-            map: map
-          });
-        } else {
-          map.setCenter(pos);
-          marker.setPosition(pos);
-        }
-      } catch (err) {
-        console.error("錯誤：無法取得位置資料", err);
+    function updateLocation() {
+      const pos = path[index];
+      if (map && marker) {
+        map.setCenter(pos);
+        marker.setPosition(pos);
       }
+      index = (index + 1) % path.length;
     }
 
-    // 每秒更新一次位置
-    setInterval(fetchLocation, 1000);
+    function initMap() {
+      const initialPos = path[0];
+      map = new google.maps.Map(document.getElementById("map"), {
+        zoom: 17,
+        center: initialPos
+      });
+      marker = new google.maps.Marker({
+        position: initialPos,
+        map: map,
+        title: "模擬位置"
+      });
+
+      setInterval(updateLocation, 2000); // 每 2 秒移動一次
+    }
   </script>
 
-  <!-- Google Maps API -->
-  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAB2eC2UMVbzmgHSCce_C_34zKH0KG_Uxw"></script>
+  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAB2eC2UMVbzmgHSCce_C_34zKH0KG_Uxw&callback=initMap" async defer></script>
 </body>
 </html>
